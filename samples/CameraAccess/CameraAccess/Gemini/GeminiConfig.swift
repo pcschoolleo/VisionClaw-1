@@ -14,10 +14,7 @@ enum GeminiConfig {
 
   static let systemInstruction = "You are an AI assistant helping someone wearing smart glasses. You can see what they see through their glasses camera. Describe what you see when asked, and answer questions conversationally. Keep responses concise and natural."
 
-  static var apiKey: String {
-    get { UserDefaults.standard.string(forKey: "gemini_api_key_v2") ?? "" }
-    set { UserDefaults.standard.set(newValue, forKey: "gemini_api_key_v2") }
-  }
+  static let apiKey = "AIzaSyDSDyn4l54VCiXGIx6SFQ9RyWefph8gHl4"
 
   static func websocketURL() -> URL? {
     guard !apiKey.isEmpty else { return nil }

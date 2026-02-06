@@ -7,8 +7,6 @@ class GeminiSessionViewModel: ObservableObject {
   @Published var connectionState: GeminiConnectionState = .disconnected
   @Published var isModelSpeaking: Bool = false
   @Published var errorMessage: String?
-  @Published var showApiKeyPrompt: Bool = false
-
   private let geminiService = GeminiLiveService()
   private let audioManager = AudioManager()
   private var lastVideoFrameTime: Date = .distantPast
@@ -16,11 +14,6 @@ class GeminiSessionViewModel: ObservableObject {
 
   func startSession() async {
     guard !isGeminiActive else { return }
-
-    if GeminiConfig.apiKey.isEmpty {
-      showApiKeyPrompt = true
-      return
-    }
 
     isGeminiActive = true
 
@@ -123,8 +116,4 @@ class GeminiSessionViewModel: ObservableObject {
     geminiService.sendVideoFrame(image: image)
   }
 
-  func saveApiKey(_ key: String) {
-    GeminiConfig.apiKey = key
-    showApiKeyPrompt = false
-  }
 }

@@ -94,22 +94,12 @@ struct StreamView: View {
         )
       }
     }
-    // API key input sheet
-    .sheet(isPresented: $geminiVM.showApiKeyPrompt) {
-      ApiKeyInputView(isPresented: $geminiVM.showApiKeyPrompt) { key in
-        geminiVM.saveApiKey(key)
-      }
-    }
     // Gemini error alert
     .alert("AI Assistant", isPresented: Binding(
       get: { geminiVM.errorMessage != nil },
       set: { if !$0 { geminiVM.errorMessage = nil } }
     )) {
       Button("OK") { geminiVM.errorMessage = nil }
-      Button("Change API Key") {
-        geminiVM.errorMessage = nil
-        geminiVM.showApiKeyPrompt = true
-      }
     } message: {
       Text(geminiVM.errorMessage ?? "")
     }
@@ -139,7 +129,7 @@ struct ControlsView: View {
         viewModel.capturePhoto()
       }
 
-      // Gemini AI button (long-press to change API key)
+      // Gemini AI button
       CircleButton(
         icon: geminiVM.isGeminiActive ? "waveform.circle.fill" : "waveform.circle",
         text: "AI"
@@ -151,9 +141,6 @@ struct ControlsView: View {
             await geminiVM.startSession()
           }
         }
-      }
-      .onLongPressGesture {
-        geminiVM.showApiKeyPrompt = true
       }
     }
   }
