@@ -5,70 +5,75 @@ class OpenClawBridge: ObservableObject {
   @Published var lastToolCallStatus: ToolCallStatus = .idle
 
   private let urlSession: URLSession
+  private let longRunSession: URLSession
 
   init() {
     let config = URLSessionConfiguration.default
     config.timeoutIntervalForRequest = 30
     self.urlSession = URLSession(configuration: config)
+
+    let longConfig = URLSessionConfiguration.default
+    longConfig.timeoutIntervalForRequest = 120
+    self.longRunSession = URLSession(configuration: longConfig)
   }
 
-  // MARK: - Webhook (async, for delegate_task / send_message)
+  // MARK: - Agent Chat (synchronous, waits for OpenClaw agent response)
 
   func delegateTask(
     task: String,
-    deliver: Bool = false,
-    channel: String? = nil,
-    timeoutSeconds: Int = 120
+    toolName: String = "delegate_task"
   ) async -> ToolResult {
-    lastToolCallStatus = .executing("delegate_task")
+    lastToolCallStatus = .executing(toolName)
 
-    guard let url = URL(string: "\(GeminiConfig.openClawHost):\(GeminiConfig.openClawPort)/hooks/agent") else {
-      lastToolCallStatus = .failed("delegate_task", "Invalid URL")
+    guard let url = URL(string: "\(GeminiConfig.openClawHost):\(GeminiConfig.openClawPort)/v1/chat/completions") else {
+      lastToolCallStatus = .failed(toolName, "Invalid URL")
       return .failure("Invalid gateway URL")
     }
 
     var request = URLRequest(url: url)
     request.httpMethod = "POST"
-    request.setValue("Bearer \(GeminiConfig.openClawHookToken)", forHTTPHeaderField: "Authorization")
+    request.setValue("Bearer \(GeminiConfig.openClawGatewayToken)", forHTTPHeaderField: "Authorization")
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-    var body: [String: Any] = [
-      "message": task,
-      "name": "Glass Voice",
-      "sessionKey": "glass:default",
-      "wakeMode": "now",
-      "deliver": deliver,
-      "timeoutSeconds": timeoutSeconds
+    let body: [String: Any] = [
+      "model": "openclaw",
+      "messages": [
+        ["role": "user", "content": task]
+      ],
+      "stream": false
     ]
-    if let channel {
-      body["channel"] = channel
-    }
 
     do {
       request.httpBody = try JSONSerialization.data(withJSONObject: body)
-      let (data, response) = try await urlSession.data(for: request)
+      let (data, response) = try await longRunSession.data(for: request)
       let httpResponse = response as? HTTPURLResponse
 
-      if httpResponse?.statusCode == 202 {
-        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let runId = json["runId"] as? String {
-          NSLog("[OpenClaw] Task delegated (runId: %@)", runId)
-          lastToolCallStatus = .completed("delegate_task")
-          return .success("Task delegated (runId: \(runId))")
-        }
-        lastToolCallStatus = .completed("delegate_task")
-        return .success("Task delegated successfully")
-      } else {
-        let statusCode = httpResponse?.statusCode ?? 0
+      guard let statusCode = httpResponse?.statusCode, (200...299).contains(statusCode) else {
+        let code = httpResponse?.statusCode ?? 0
         let bodyStr = String(data: data, encoding: .utf8) ?? "no body"
-        NSLog("[OpenClaw] Webhook failed: HTTP %d - %@", statusCode, bodyStr)
-        lastToolCallStatus = .failed("delegate_task", "HTTP \(statusCode)")
-        return .failure("Gateway returned HTTP \(statusCode): \(bodyStr)")
+        NSLog("[OpenClaw] Chat failed: HTTP %d - %@", code, String(bodyStr.prefix(200)))
+        lastToolCallStatus = .failed(toolName, "HTTP \(code)")
+        return .failure("Agent returned HTTP \(code)")
       }
+
+      if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+         let choices = json["choices"] as? [[String: Any]],
+         let first = choices.first,
+         let message = first["message"] as? [String: Any],
+         let content = message["content"] as? String {
+        NSLog("[OpenClaw] Agent result: %@", String(content.prefix(200)))
+        lastToolCallStatus = .completed(toolName)
+        return .success(content)
+      }
+
+      let raw = String(data: data, encoding: .utf8) ?? "OK"
+      NSLog("[OpenClaw] Agent raw: %@", String(raw.prefix(200)))
+      lastToolCallStatus = .completed(toolName)
+      return .success(raw)
     } catch {
-      NSLog("[OpenClaw] Webhook error: %@", error.localizedDescription)
-      lastToolCallStatus = .failed("delegate_task", error.localizedDescription)
-      return .failure("Gateway unreachable: \(error.localizedDescription)")
+      NSLog("[OpenClaw] Agent error: %@", error.localizedDescription)
+      lastToolCallStatus = .failed(toolName, error.localizedDescription)
+      return .failure("Agent error: \(error.localizedDescription)")
     }
   }
 

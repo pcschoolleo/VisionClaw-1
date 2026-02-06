@@ -27,24 +27,14 @@ class ToolCallRouter {
       switch callName {
       case "delegate_task":
         let taskDesc = call.args["task"] as? String ?? ""
-        let deliver = call.args["deliver"] as? Bool ?? false
-        let channel = call.args["channel"] as? String
-        result = await bridge.delegateTask(
-          task: taskDesc,
-          deliver: deliver,
-          channel: channel
-        )
+        result = await bridge.delegateTask(task: taskDesc, toolName: "delegate_task")
 
       case "send_message":
         let to = call.args["to"] as? String ?? ""
         let message = call.args["message"] as? String ?? ""
         let channel = call.args["channel"] as? String ?? "last"
         let taskDesc = "Send a \(channel) message to \(to) saying: \(message)"
-        result = await bridge.delegateTask(
-          task: taskDesc,
-          deliver: false,
-          timeoutSeconds: 30
-        )
+        result = await bridge.delegateTask(task: taskDesc, toolName: "send_message")
 
       case "web_search":
         let query = call.args["query"] as? String ?? ""
@@ -57,7 +47,8 @@ class ToolCallRouter {
       default:
         NSLog("[ToolCall] Unknown tool '%@', delegating as generic task", callName)
         result = await bridge.delegateTask(
-          task: "Execute tool '\(callName)' with args: \(call.args)"
+          task: "Execute tool '\(callName)' with args: \(call.args)",
+          toolName: callName
         )
       }
 
