@@ -366,9 +366,15 @@ public class FastVLMProcessor: UserInputProcessor {
         case .text(let text):
             messages = [["role": "user", "content": text]]
         case .messages(let msgs):
-            messages = msgs
+            messages = msgs.map { msg in
+                var dict = [String: String]()
+                for (key, value) in msg {
+                    if let str = value as? String { dict[key] = str }
+                }
+                return dict
+            }
         case .chat(let chatMessages):
-            messages = chatMessages.map { ["role": $0.role, "content": $0.content] }
+            messages = chatMessages.map { ["role": "\($0.role)", "content": $0.content] }
         }
         if messages[0]["role"] != "system" {
             messages.insert(["role": "system", "content": "You are a helpful assistant."], at: 0)
