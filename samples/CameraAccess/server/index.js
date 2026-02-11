@@ -6,8 +6,38 @@ const { WebSocketServer } = require("ws");
 const PORT = process.env.PORT || 8080;
 const rooms = new Map(); // roomCode -> { creator: ws, viewer: ws }
 
+// Cache TURN credentials (refresh every 20 minutes)
+let turnCache = { data: null, expires: 0 };
+
+async function fetchTurnCredentials() {
+  if (turnCache.data && Date.now() < turnCache.expires) {
+    return turnCache.data;
+  }
+  try {
+    const resp = await fetch("https://speed.cloudflare.com/turn-creds");
+    const creds = await resp.json();
+    turnCache = { data: creds, expires: Date.now() + 20 * 60 * 1000 };
+    console.log("[TURN] Fetched Cloudflare TURN credentials");
+    return creds;
+  } catch (err) {
+    console.log("[TURN] Failed to fetch credentials:", err.message);
+    return null;
+  }
+}
+
 // HTTP server for serving the web viewer
-const httpServer = http.createServer((req, res) => {
+const httpServer = http.createServer(async (req, res) => {
+  // TURN credentials API endpoint
+  if (req.url === "/api/turn") {
+    const creds = await fetchTurnCredentials();
+    res.writeHead(200, {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+    });
+    res.end(JSON.stringify(creds || {}));
+    return;
+  }
+
   let filePath = path.join(
     __dirname,
     "public",
@@ -47,9 +77,11 @@ function generateRoomCode() {
   return code;
 }
 
-wss.on("connection", (ws) => {
+wss.on("connection", (ws, req) => {
   let currentRoom = null;
   let role = null; // 'creator' or 'viewer'
+  const clientIP = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+  console.log(`[WS] New connection from ${clientIP}`);
 
   ws.on("message", (data) => {
     let msg;
@@ -99,17 +131,29 @@ wss.on("connection", (ws) => {
       case "answer":
       case "candidate": {
         const room = rooms.get(currentRoom);
-        if (!room) return;
+        if (!room) {
+          console.log(`[Relay] ${msg.type} from ${role} but room ${currentRoom} not found`);
+          return;
+        }
         const target = role === "creator" ? room.viewer : room.creator;
         if (target && target.readyState === 1) {
           target.send(JSON.stringify(msg));
+          console.log(`[Relay] ${msg.type} from ${role} -> ${role === "creator" ? "viewer" : "creator"} (room ${currentRoom})`);
+        } else {
+          console.log(`[Relay] ${msg.type} from ${role} but target not ready (room ${currentRoom})`);
         }
         break;
       }
     }
   });
 
-  ws.on("close", () => {
+  ws.on("error", (err) => {
+    console.log(`[WS] Error for ${role} in room ${currentRoom}: ${err.message}`);
+  });
+
+  ws.on("close", (code, reason) => {
+    console.log(`[WS] Closed: ${role} in room ${currentRoom} (code=${code}, reason=${reason || "none"})`);
+
     if (currentRoom && rooms.has(currentRoom)) {
       const room = rooms.get(currentRoom);
       const otherPeer = role === "creator" ? room.viewer : room.creator;

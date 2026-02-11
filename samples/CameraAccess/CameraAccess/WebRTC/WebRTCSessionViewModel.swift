@@ -34,12 +34,15 @@ class WebRTCSessionViewModel: ObservableObject {
     isActive = true
     connectionState = .connecting
 
+    // Fetch TURN credentials for NAT traversal across networks
+    let iceServers = await WebRTCConfig.fetchIceServers()
+
     // Create WebRTC client
     let client = WebRTCClient()
     let adapter = WebRTCDelegateAdapter(viewModel: self)
     delegateAdapter = adapter
     client.delegate = adapter
-    client.setup()
+    client.setup(iceServers: iceServers)
     webRTCClient = client
 
     // Connect to signaling server

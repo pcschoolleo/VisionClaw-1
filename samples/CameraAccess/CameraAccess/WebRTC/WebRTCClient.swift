@@ -29,11 +29,9 @@ class WebRTCClient: NSObject {
     super.init()
   }
 
-  func setup() {
+  func setup(iceServers: [RTCIceServer]? = nil) {
     let config = RTCConfiguration()
-    config.iceServers = [
-      RTCIceServer(urlStrings: WebRTCConfig.iceServers)
-    ]
+    config.iceServers = iceServers ?? [RTCIceServer(urlStrings: WebRTCConfig.stunServers)]
     config.sdpSemantics = .unifiedPlan
     config.continualGatheringPolicy = .gatherContinually
 

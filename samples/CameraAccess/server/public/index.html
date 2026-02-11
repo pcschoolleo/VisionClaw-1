@@ -158,12 +158,26 @@
     }
 
     async function setupPeerConnection() {
-      const config = {
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
-        ]
-      };
+      // Fetch TURN credentials for NAT traversal across networks
+      let iceServers = [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+      ];
+      try {
+        const resp = await fetch('/api/turn');
+        const creds = await resp.json();
+        if (creds && creds.urls) {
+          iceServers.push({
+            urls: creds.urls,
+            username: creds.username,
+            credential: creds.credential
+          });
+          console.log('TURN credentials loaded');
+        }
+      } catch (e) {
+        console.log('No TURN credentials, STUN only');
+      }
+      const config = { iceServers };
       pc = new RTCPeerConnection(config);
 
       // Get mic for bidirectional audio (expert talks back to glasses wearer)
