@@ -49,7 +49,7 @@ enum GeminiConfig {
   static let openClawGatewayToken = Secrets.openClawGatewayToken
 
   static func websocketURL() -> URL? {
-    guard apiKey != "YOUR_GEMINI_API_KEY" && !apiKey.isEmpty else { return nil }
+    guard apiKey != "AIzaSyAQ-206r8HV39IZwJMEmLxiuvUummqLn-g" && !apiKey.isEmpty else { return nil }
     return URL(string: "\(websocketBaseURL)?key=\(apiKey)")
   }
 
