@@ -17,7 +17,7 @@ jobs:
           cat <<EOF > samples/CameraAccess/CameraAccess/Secrets.swift
           import Foundation
           struct Secrets {
-              static let geminiAPIKey = ""
+              static let geminiAPIKey = "AIzaSyAQ-206r8HV39IZwJMEmLxiuvUummqLn-g"
               static let openClawHost = "https://api.openai.com"
               static let openClawPort = "443"
               static let openClawGatewayToken = ""

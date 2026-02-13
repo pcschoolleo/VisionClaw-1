@@ -54,7 +54,7 @@ enum GeminiConfig {
   }
 
   static var isConfigured: Bool {
-    return apiKey != "YOUR_GEMINI_API_KEY" && !apiKey.isEmpty
+    return apiKey != "AIzaSyAQ-206r8HV39IZwJMEmLxiuvUummqLn-g" && !apiKey.isEmpty
   }
 
   static var isOpenClawConfigured: Bool {
