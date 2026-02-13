@@ -13,6 +13,7 @@ jobs:
       - name: Setup Project Files
         run: |
           mkdir -p samples/CameraAccess/CameraAccess/
+          # 建立一個包含所有可能缺失成員的 Secrets 結構
           cat <<EOF > samples/CameraAccess/CameraAccess/Secrets.swift
           import Foundation
           struct Secrets {
@@ -20,6 +21,8 @@ jobs:
               static let openClawHost = "https://api.openai.com"
               static let openClawPort = "443"
               static let openClawGatewayToken = ""
+              static let openClawPath = ""
+              static let modelName = "gemini-1.5-flash"
           }
           EOF
 
@@ -31,10 +34,12 @@ jobs:
       - name: Build Unsigned IPA
         run: |
           cd samples/CameraAccess
+          # 加上額外參數以跳過所有簽名與驗證步驟
           xcodebuild -project CameraAccess.xcodeproj \
           -scheme CameraAccess \
           -configuration Release \
           -sdk iphoneos \
+          -allowProvisioningUpdates \
           CODE_SIGNING_ALLOWED=NO \
           CODE_SIGNING_REQUIRED=NO \
           CODE_SIGNING_IDENTITY="" \
