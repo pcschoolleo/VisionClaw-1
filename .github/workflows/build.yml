@@ -1,32 +1,26 @@
 name: Build VisionClaw IPA
-on: [push] # 只要你 push 程式碼，雲端就會自動編譯
-
+on: [push] 
 jobs:
   build:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_15.0.app
-        
+
+      - name: Select Latest Xcode
+        # 改用這個指令，讓它自動抓目前系統裡最新、穩定的 Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app 
+
       - name: Build Unsigned IPA
         run: |
-          # 1. 編譯專案並產生封存檔 (Archive)
           xcodebuild -project samples/CameraAccess/CameraAccess.xcodeproj \
-          -scheme CameraAccess \
-          -configuration Release \
-          -sdk iphoneos \
-          CODE_SIGNING_ALLOWED=NO \
-          archive -archivePath ./build/CameraAccess.xcarchive
-          
-          # 2. 將編譯出的 .app 封裝成 .ipa 格式
+          -scheme CameraAccess -configuration Release -sdk iphoneos \
+          CODE_SIGNING_ALLOWED=NO archive -archivePath ./build/CameraAccess.xcarchive
           mkdir -p ./build/Payload
           cp -r ./build/CameraAccess.xcarchive/Products/Applications/*.app ./build/Payload/
           cd ./build && zip -r CameraAccess.ipa Payload
-          
+
       - name: Upload result
         uses: actions/upload-artifact@v4
         with:
-          name: VisionClaw-App # 這是你最後會看到的下載檔名
+          name: VisionClaw-App
           path: build/CameraAccess.ipa
