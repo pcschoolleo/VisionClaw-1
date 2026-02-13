@@ -18,6 +18,8 @@ jobs:
           struct Secrets {
               static let apiKey = ""
               static let openClawHost = "https://api.openai.com"
+              static let openClawPort = "443"
+              static let openClawGatewayToken = ""
           }
           EOF
 
