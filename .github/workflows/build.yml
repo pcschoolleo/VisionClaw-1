@@ -12,20 +12,24 @@ jobs:
 
       - name: Build Unsigned IPA
         run: |
-          # 1. 解決 Secrets.swift 遺失的問題
-          # 先進入專案目錄，確保建立在正確位置
+          # 1. 建立偽裝的 Secrets.swift
           mkdir -p samples/CameraAccess/CameraAccess/
-          echo "// Empty secret file to satisfy compiler" > samples/CameraAccess/CameraAccess/Secrets.swift
+          echo "// Empty" > samples/CameraAccess/CameraAccess/Secrets.swift
           
-          # 2. 開始編譯並產生 Archive
-          xcodebuild -project samples/CameraAccess/CameraAccess.xcodeproj \
+          # 2. 強制下載所有需要的 Swift Packages (解決 Exit code 65 的常見原因)
+          cd samples/CameraAccess
+          xcodebuild -resolvePackageDependencies
+          
+          # 3. 清理並編譯 (Clean Archive)
+          xcodebuild -project CameraAccess.xcodeproj \
           -scheme CameraAccess \
           -configuration Release \
           -sdk iphoneos \
           CODE_SIGNING_ALLOWED=NO \
-          archive -archivePath ./build/CameraAccess.xcarchive
+          clean archive -archivePath ../../build/CameraAccess.xcarchive
           
-          # 3. 建立 Payload 資料夾並封裝成 IPA
+          # 4. 封裝 IPA
+          cd ../..
           mkdir -p ./build/Payload
           cp -r ./build/CameraAccess.xcarchive/Products/Applications/*.app ./build/Payload/
           cd ./build && zip -r CameraAccess.ipa Payload
