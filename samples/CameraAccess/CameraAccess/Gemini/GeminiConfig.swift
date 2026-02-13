@@ -42,19 +42,19 @@ enum GeminiConfig {
 
   // Secrets are stored in Secrets.swift (gitignored).
   // Copy Secrets.example.swift -> Secrets.swift and fill in your values.
-  static let apiKey = Secrets.geminiAPIKey
+  static let apiKey = "AIzaSyAQ-206r8HV39IZwJMEmLxiuvUummqLn-g"
   static let openClawHost = Secrets.openClawHost
   static let openClawPort = Secrets.openClawPort
   static let openClawHookToken = Secrets.openClawHookToken
   static let openClawGatewayToken = Secrets.openClawGatewayToken
 
   static func websocketURL() -> URL? {
-    guard apiKey != "AIzaSyAQ-206r8HV39IZwJMEmLxiuvUummqLn-g" && !apiKey.isEmpty else { return nil }
+    guard apiKey != "YOUR_GEMINI_API_KEY" && !apiKey.isEmpty else { return nil }
     return URL(string: "\(websocketBaseURL)?key=\(apiKey)")
   }
 
   static var isConfigured: Bool {
-    return apiKey != "AIzaSyAQ-206r8HV39IZwJMEmLxiuvUummqLn-g" && !apiKey.isEmpty
+    return apiKey != "YOUR_GEMINI_API_KEY" && !apiKey.isEmpty
   }
 
   static var isOpenClawConfigured: Bool {
