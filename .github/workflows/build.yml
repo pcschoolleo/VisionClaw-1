@@ -12,17 +12,16 @@ jobs:
 
       - name: Setup Project Files
         run: |
-          # 建立必要的 Secrets 檔案內容，防止編譯器找不到變數
           mkdir -p samples/CameraAccess/CameraAccess/
           cat <<EOF > samples/CameraAccess/CameraAccess/Secrets.swift
           import Foundation
           struct Secrets {
               static let apiKey = ""
+              static let openClawHost = "https://api.openai.com"
           }
           EOF
 
       - name: Resolve Swift Packages
-        # 這是最關鍵的一步：強制下載 GoogleGenerativeAI 等套件
         run: |
           cd samples/CameraAccess
           xcodebuild -resolvePackageDependencies
@@ -34,14 +33,12 @@ jobs:
           -scheme CameraAccess \
           -configuration Release \
           -sdk iphoneos \
-          -derivedDataPath ./DerivedData \
           CODE_SIGNING_ALLOWED=NO \
           CODE_SIGNING_REQUIRED=NO \
           CODE_SIGNING_IDENTITY="" \
           AD_HOC_CODE_SIGNING_ALLOWED=YES \
           archive -archivePath ../../build/CameraAccess.xcarchive
           
-          # 回到根目錄進行封裝
           cd ../..
           mkdir -p ./build/Payload
           cp -r ./build/CameraAccess.xcarchive/Products/Applications/*.app ./build/Payload/
