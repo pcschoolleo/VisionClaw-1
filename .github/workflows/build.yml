@@ -10,31 +10,38 @@ jobs:
       - name: Select Latest Xcode
         run: sudo xcode-select -s /Applications/Xcode.app 
 
-      - name: Build Unsigned IPA
+      - name: Setup Project Files
         run: |
-          # 1. 建立正確內容的 Secrets.swift (預防 SwiftCompile 失敗)
+          # 建立必要的 Secrets 檔案內容，防止編譯器找不到變數
           mkdir -p samples/CameraAccess/CameraAccess/
           cat <<EOF > samples/CameraAccess/CameraAccess/Secrets.swift
           import Foundation
-          enum Secrets {
+          struct Secrets {
               static let apiKey = ""
           }
           EOF
-          
-          # 2. 強制解析套件 (確保 GoogleAI SDK 有抓到)
+
+      - name: Resolve Swift Packages
+        # 這是最關鍵的一步：強制下載 GoogleGenerativeAI 等套件
+        run: |
           cd samples/CameraAccess
           xcodebuild -resolvePackageDependencies
-          
-          # 3. 執行編譯 (直接忽略簽名錯誤)
+
+      - name: Build Unsigned IPA
+        run: |
+          cd samples/CameraAccess
           xcodebuild -project CameraAccess.xcodeproj \
           -scheme CameraAccess \
           -configuration Release \
           -sdk iphoneos \
+          -derivedDataPath ./DerivedData \
           CODE_SIGNING_ALLOWED=NO \
           CODE_SIGNING_REQUIRED=NO \
-          clean archive -archivePath ../../build/CameraAccess.xcarchive
+          CODE_SIGNING_IDENTITY="" \
+          AD_HOC_CODE_SIGNING_ALLOWED=YES \
+          archive -archivePath ../../build/CameraAccess.xcarchive
           
-          # 4. 封裝 IPA
+          # 回到根目錄進行封裝
           cd ../..
           mkdir -p ./build/Payload
           cp -r ./build/CameraAccess.xcarchive/Products/Applications/*.app ./build/Payload/
