@@ -12,20 +12,26 @@ jobs:
 
       - name: Build Unsigned IPA
         run: |
-          # 1. 建立偽裝的 Secrets.swift
+          # 1. 建立正確內容的 Secrets.swift (預防 SwiftCompile 失敗)
           mkdir -p samples/CameraAccess/CameraAccess/
-          echo "// Empty" > samples/CameraAccess/CameraAccess/Secrets.swift
+          cat <<EOF > samples/CameraAccess/CameraAccess/Secrets.swift
+          import Foundation
+          enum Secrets {
+              static let apiKey = ""
+          }
+          EOF
           
-          # 2. 強制下載所有需要的 Swift Packages (解決 Exit code 65 的常見原因)
+          # 2. 強制解析套件 (確保 GoogleAI SDK 有抓到)
           cd samples/CameraAccess
           xcodebuild -resolvePackageDependencies
           
-          # 3. 清理並編譯 (Clean Archive)
+          # 3. 執行編譯 (直接忽略簽名錯誤)
           xcodebuild -project CameraAccess.xcodeproj \
           -scheme CameraAccess \
           -configuration Release \
           -sdk iphoneos \
           CODE_SIGNING_ALLOWED=NO \
+          CODE_SIGNING_REQUIRED=NO \
           clean archive -archivePath ../../build/CameraAccess.xcarchive
           
           # 4. 封裝 IPA
