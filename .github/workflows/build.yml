@@ -1,5 +1,6 @@
 name: Build VisionClaw IPA
 on: [push] 
+
 jobs:
   build:
     runs-on: macos-latest
@@ -7,18 +8,28 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Select Latest Xcode
-        # 改用這個指令，讓它自動抓目前系統裡最新、穩定的 Xcode
         run: sudo xcode-select -s /Applications/Xcode.app 
 
       - name: Build Unsigned IPA
         run: |
+          # 1. 解決 Secrets.swift 遺失的問題
+          # 先進入專案目錄，確保建立在正確位置
+          mkdir -p samples/CameraAccess/CameraAccess/
+          echo "// Empty secret file to satisfy compiler" > samples/CameraAccess/CameraAccess/Secrets.swift
+          
+          # 2. 開始編譯並產生 Archive
           xcodebuild -project samples/CameraAccess/CameraAccess.xcodeproj \
-          -scheme CameraAccess -configuration Release -sdk iphoneos \
-          CODE_SIGNING_ALLOWED=NO archive -archivePath ./build/CameraAccess.xcarchive
+          -scheme CameraAccess \
+          -configuration Release \
+          -sdk iphoneos \
+          CODE_SIGNING_ALLOWED=NO \
+          archive -archivePath ./build/CameraAccess.xcarchive
+          
+          # 3. 建立 Payload 資料夾並封裝成 IPA
           mkdir -p ./build/Payload
           cp -r ./build/CameraAccess.xcarchive/Products/Applications/*.app ./build/Payload/
           cd ./build && zip -r CameraAccess.ipa Payload
-
+          
       - name: Upload result
         uses: actions/upload-artifact@v4
         with:
