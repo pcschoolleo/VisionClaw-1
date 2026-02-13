@@ -11,13 +11,13 @@ jobs:
         run: sudo xcode-select -s /Applications/Xcode.app 
 
       - name: Setup Project Files
+        # 這步驟會動態產生 Secrets.swift，並把你的 GitHub Secret 填進去
         run: |
           mkdir -p samples/CameraAccess/CameraAccess/
-          # 根據報錯訊息精確補齊成員名稱
           cat <<EOF > samples/CameraAccess/CameraAccess/Secrets.swift
           import Foundation
           struct Secrets {
-              static let geminiAPIKey = "AIzaSyAQ-206r8HV39IZwJMEmLxiuvUummqLn-g"
+              static let geminiAPIKey = "${{ secrets.GEMINI_API_KEY }}"
               static let openClawHost = "https://api.openai.com"
               static let openClawPort = "443"
               static let openClawGatewayToken = ""
@@ -34,6 +34,7 @@ jobs:
       - name: Build Unsigned IPA
         run: |
           cd samples/CameraAccess
+          # 使用跳過簽名與驗證的參數進行 Archive
           xcodebuild -project CameraAccess.xcodeproj \
           -scheme CameraAccess \
           -configuration Release \
@@ -44,6 +45,7 @@ jobs:
           AD_HOC_CODE_SIGNING_ALLOWED=YES \
           archive -archivePath ../../build/CameraAccess.xcarchive
           
+          # 將編譯好的 .app 包裝成 .ipa
           cd ../..
           mkdir -p ./build/Payload
           cp -r ./build/CameraAccess.xcarchive/Products/Applications/*.app ./build/Payload/

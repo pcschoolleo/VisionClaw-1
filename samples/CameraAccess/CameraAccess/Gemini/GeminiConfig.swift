@@ -42,7 +42,7 @@ enum GeminiConfig {
 
   // Secrets are stored in Secrets.swift (gitignored).
   // Copy Secrets.example.swift -> Secrets.swift and fill in your values.
-  static let apiKey = "AIzaSyAQ-206r8HV39IZwJMEmLxiuvUummqLn-g"
+  static let apiKey = Secrets.geminiAPIKey
   static let openClawHost = Secrets.openClawHost
   static let openClawPort = Secrets.openClawPort
   static let openClawHookToken = Secrets.openClawHookToken
